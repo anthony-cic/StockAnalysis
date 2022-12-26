@@ -2,56 +2,64 @@ import yfinance as yf
 
 
 
-def analyze_cash_flow(stock):
-    # analyzes cash flow year over year for a given stock
+def analyze(df, key):
+    # analyzes a key year over year for a given stock
     # stock parameter must be a yf.ticker data type 
     # returns a dictionary with the percent change in cashflow from last year 
 
-    # Get pandas data frame 
-    cashFlow = stock.cashflow 
 
-    # Data frame to list containing the free cash flow each year 
-    freeCashFlowLst = cashFlow.iloc[-1].tolist()
+    i = 0 
+    perChangeDict = {} 
+    for date in df.keys():
+        if (i + 1 == len(df.keys())):
+            break 
 
-    # Gets the keys of free cash flow, which is just the date 
-    freeCashFlowKeys = cashFlow.iloc[-1].keys() 
+        amt = df[date][key]
+        prev = df[df.keys()[i+1]][key]
 
-    print(cashFlow.iloc[-1])
-    #print(cashFlow.iloc[-1].keys()[0].year)
-
-    i = 0
-    perChangeDict = {}
-    while (i + 1 != len(freeCashFlowLst)):
-        
-        # Percent change from last year as a float 
-        perChange = float((freeCashFlowLst[i] - freeCashFlowLst[i+1]) / freeCashFlowLst[i+1])*100
+        perChange = float((amt - prev) / prev)*100
         perChange = round(perChange, 2) 
 
-        # appends percent change in a dict per year 
-        perChangeDict[freeCashFlowKeys[i].year] = perChange
-        i+=1 
-
-
-    return perChangeDict 
-
+        perChangeDict[df.keys()[i].year] = perChange
+        i += 1
+    
+    return perChangeDict
 
 
 
 def main(): 
-    ticker = input("Input the stock ticker to analyze: ")
-    #ticker = "AAPL" 
+    #ticker = input("Input the stock ticker to analyze: ")
+    ticker = "AAPL" 
 
     stock = yf.Ticker(ticker) 
 
-    cashFlowDict = analyze_cash_flow(stock) 
+    print(f"=================================== \n{ticker} Stock Analysis...\n")
 
-    print(f"{ticker} cash flow change percent (from prev year): {cashFlowDict}")
+    cashFlow = stock.cashflow 
+    cashFlowDict = analyze(cashFlow, 'Free Cash Flow')
 
+    print(f"Free Cash Flow change percent (from prev year): {cashFlowDict}")
 
+    income_stmt = stock.income_stmt
+    revenueDict = analyze(income_stmt, 'Total Revenue')
+
+    print(f"Revenue change percent (from prev year): {revenueDict}")
     
-    #print(cashFlow[0])
+    # current stock price 
+    currentPrice = stock.info['currentPrice'] 
+    
+    # last years date 
+    date = income_stmt.keys()[1] 
+    # last reported EPS 
+    EPS = income_stmt[date]['Diluted EPS'] # all convertible securities exerised
+    PE = currentPrice / EPS
+    PE = round(PE, 2)
+    print(f"PE: {PE}")
 
-    print()
+    print(f" 52 Week Change {stock.info['SandP52WeekChange']}") 
+
+
+    print("=================================== \n")
 
 
 main() 
